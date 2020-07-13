@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-touch-fullscreen">
+  <title>MS Bag Tags</title>
+  <link rel="apple-touch-icon" href="icons/apple-icon-180x180.png">
+  <link rel="stylesheet" href="css/onsenui.min.css">
+  <link rel="stylesheet" href="css/dark-onsen-css-components.min.css">
+  <link rel="stylesheet" href="css/onsenui-fonts.css">
+  <link rel="stylesheet" href="css/ionicons/css/ionicons.min.css">
+  <style>
+      .topTitle{
+        font: inherit;
+        background: 0 0;
+        border: none;
+        user-select: none;
+        font-family: -apple-system,'Helvetica Neue',Helvetica,Arial,'Lucida Grande',sans-serif;
+        -webkit-font-smoothing: antialiased;
+        display: block;
+        color: white;
+        box-sizing: border-box;
+        padding: 0 0 0 0px;
+        font-size: 18px;
+        font-weight: 500;
+        line-height: 44px;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+        text-align: center;
+        margin-top: 0px;
+        margin-bottom: auto;
+        width:100%;
+      }
+	  .toolbar--material__left:empty, .toolbar--material__right:empty {
+	    min-width: 65px;
+	  }
+      #homeTags{
+          width:70%;
+          margin-left:auto;
+          margin-right:auto;
+      }
+      #homeTagsTitle{
+          margin-top:10px;
+          font-size:15px;
+          margin-bottom:10px;
+      }
+      #splitterList{
+          margin:5px;
+      }
+      #asOfDiv{
+          text-align:right;
+          margin-right:5px;
+		  max-width: 45%;
+		  font-size: 10px;
+      }
+      .tagDivider{
+          margin-left:10px;
+          margin-right:10px;
+          display:none;
+      }
+      #leftBtn{
+          float:left;
+          margin-left:20px;
+      }
+      #rightBtn{
+          float:right;
+          margin-right:20px;
+      }
+      .bottomButtons{
+          height: 36px;
+          margin-top: 4px;
+          margin-right:5px;
+          margin-left:5px;
+      }
+      #addPlayerContent{
+          margin-top:50px;
+          width:80%;
+          margin-left:auto;
+          margin-right:auto;
+      }
+      #newPlayerInput{
+          width:100%;
+          margin-bottom:20px;
+      }
+      #addPlayerProgBar{
+          display:none;
+      }
+      #logRoundTitle{
+          margin-top:10px;
+          font-size:15px;
+          margin-bottom:10px;
+      }
+      #logRoundList{
+          width:70%;
+          margin-left:auto;
+          margin-right:auto;
+      }
+      .bottomRightBtn{
+          float:right;
+          width: 100px;
+      }
+      .roundOrderLI{
+          width:22px;
+          color:rgb(253, 160, 1);
+      }
+      .tagNum{
+          width:22px;
+          color:rgb(253, 160, 1);
+          padding-right: 10px;
+          text-align: center;
+      }
+      .moveDown,.moveUp{
+          display:none;
+          order: 2;
+          margin-bottom: 6px;
+          font-size:20px
+      }
+      .moveNum{
+          order: 3;
+          margin-right: 5px;
+          margin-bottom: 0px;
+          font-size: 13px;
+          width: 15px;
+          //text-align: center;
+          //display: inline-block;
+      }
+      .moveDown{
+          color:rgb(250, 55, 55);
+      }
+      .moveUp{
+          color:rgb(43, 139, 43);
+      }
+      .moveDirClass{
+          order:2;
+          width:35px;
+      }
+      .bottom-bar{
+          //height:85px;
+      }
+      #updateBtn{
+        position: absolute;
+        display: block;
+        right: 5px;
+        top: 50px;
+        height: 40px;
+      }
+  </style>
+  <script src="js/onsenui.min.js"></script>
+  <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+  <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+  <script src="https://code.highcharts.com/highcharts.js"></script>
+  <script src="https://code.highcharts.com/modules/series-label.js"></script>
+  <script src="js/moment.min.js"></script>
+  <script>
+    //global vars
+    var currentBagTags = null;
+    var tagLookup;
+
+    window.fn = {};
+
+    window.fn.open = function() {
+    var menu = document.getElementById('menu');
+    menu.open();
+    };
+
+    window.fn.load = function(page) {
+    var content = document.getElementById('content');
+    var menu = document.getElementById('menu');
+    content.load(page)
+        .then(menu.close.bind(menu));
+    };
+
+    function reBuildTags(datetime,dir,newUpdate){
+		$('#homeProgBar').show();
+        var toJSON = {};
+        toJSON.datetime = datetime;
+        toJSON.dir = dir;
+        $.ajax({
+            url : "getBagTags.php",
+            type: "POST",
+            data : {data:JSON.stringify(toJSON)},
+            cache: false,
+            success:function(data){
+                bagTags = $.parseJSON(data);
+                var thisTagMap = {};
+				if(bagTags.length > 0){
+					$("#homeTags").empty();
+					$("#leftBtn").show();
+					$("#homeTags").attr('data-updateddate',bagTags[0].UpdatedDate);
+					var asOfLabel = '';
+					
+					if(newUpdate){
+						$("#homeTags").attr('data-maxupdateddate',$('#homeTags').attr('data-updateddate'));
+						newUpdate = false;
+					}
+					if($("#homeTags").attr('data-maxupdateddate') == $("#homeTags").attr('data-updateddate')){
+						$("#rightBtn").hide();
+						$('#homeTagsTitle').text('Current Standings');
+						asOfLabel = "Updated ";
+					}
+                    var mmt = moment(bagTags[0].UpdatedDate);
+                    if (mmt.isDST()){
+                        mmt = mmt.hours(mmt.hours()+1);
+                    }
+					$("#asOfDatetime").text(asOfLabel+mmt.fromNow());
+
+					for(var i=0;i<bagTags.length;i++){
+                        thisTagMap[bagTags[i].Name] = bagTags[i].Tag;
+						$("#homeTags").append('<li data-id="'+(bagTags[i].Id)+'" data-tag="'+(bagTags[i].Tag)+'" data-name="'+(bagTags[i].Name)+'" class="list-item"><div class="list-item__center"><span class="tagNum">'+(bagTags[i].Tag)+'</span><span class="tagDivider">-</span><span class="tagName">'+bagTags[i].Name+'</span></div><div class="moveDirClass"><span class="moveUp">&#8593;</span><span class="moveDown">&#8595;</span><span class="moveNum"></span></div></li>');
+					}
+
+					//store "present" state of tags at global level
+					if(currentBagTags == null){
+						currentBagTags = [];
+						var bagTagsList = $("#homeTags > li");
+						for(var i=0;i<bagTagsList.length;i++){
+							var tag = {};
+							tag.Name = bagTagsList[i].getAttribute('data-name');
+							tag.Tag = bagTagsList[i].getAttribute('data-tag');
+							currentBagTags.push(tag);
+						}
+						tagLookup = {};
+						$.each(currentBagTags,function(){
+							tagLookup[this.Name] = this.Tag;
+						});
+					}
+
+                    //get relative previous tag info
+                    var toJSON = {};
+                    toJSON.datetime = bagTags[0].UpdatedDate;
+                    toJSON.dir = -1;
+                    $.ajax({
+                        url : "getBagTags.php",
+                        type: "POST",
+                        data : {data:JSON.stringify(toJSON)},
+                        cache: false,
+                        success:function(data){
+                            prevBagTags = $.parseJSON(data);
+                            for(var i=0;i<prevBagTags.length;i++){
+                                if(parseInt(prevBagTags[i].Tag) > parseInt(thisTagMap[prevBagTags[i].Name])){
+                                    $("#homeTags li[data-name='"+prevBagTags[i].Name+"'] .moveUp").show();
+                                    $("#homeTags li[data-name='"+prevBagTags[i].Name+"'] .moveNum").text(parseInt(prevBagTags[i].Tag) - parseInt(thisTagMap[prevBagTags[i].Name]));
+                                    $("#homeTags li[data-name='"+prevBagTags[i].Name+"'] .moveNum").css('color','rgb(43, 139, 43)');
+                                } else if(parseInt(prevBagTags[i].Tag) < parseInt(thisTagMap[prevBagTags[i].Name])){
+                                    $("#homeTags li[data-name='"+prevBagTags[i].Name+"'] .moveDown").show();
+                                    $("#homeTags li[data-name='"+prevBagTags[i].Name+"'] .moveNum").text(parseInt(thisTagMap[prevBagTags[i].Name]) - parseInt(prevBagTags[i].Tag));
+                                    $("#homeTags li[data-name='"+prevBagTags[i].Name+"'] .moveNum").css('color','rgb(250, 55, 55)');
+                                }
+                            }
+                            $('#homeTags').trigger('touchstart');
+                            $("#leftBtn").removeAttr('disabled');
+                            $("#rightBtn").removeAttr('disabled');
+                            $('#homeProgBar').hide();         
+                        }
+                    });
+				} else {
+					$("#leftBtn").hide();
+				}
+				
+            }
+        });
+    }
+
+    function insertNewUser(name){
+        var toJSON = {};
+        $('#addPlayerProgBar').show();
+        $.ajax({
+            url : "getNextTag.php",
+            type: "POST",
+            cache: false,
+            success:function(data){
+                result = $.parseJSON(data);
+                console.log(result[0].Tag);
+                console.log(result[0].UpdatedDate);
+                toJSON.newName = name;
+                toJSON.newTag = result[0].Tag;
+                toJSON.lastDateTime = result[0].UpdatedDate;
+
+                $.ajax({
+                    url : "insertNewUser.php",
+                    type: "POST",
+                    data : {data:JSON.stringify(toJSON)},
+                    cache: false,
+                    success:function(data){
+                        currentBagTags = null;
+                        reBuildTags(null,null,true);
+                        var content = document.querySelector('ons-splitter-content');
+                        content.load('home.html');
+                        $('#addPlayerProgBar').hide();
+                    }
+                }); 
+            }
+        });
+    }
+
+    function logRoundInit(){
+		$('#logRoundProgBar').show();
+        $.ajax({
+            url : "getPlayerNames.php",
+            type: "POST",
+            cache: false,
+            success:function(data){
+                playerNames = $.parseJSON(data);
+                //$("#logRoundList").empty();
+
+                for(var i=0;i<playerNames.length;i++){
+                    $("#logRoundList").append('<li class="list-item"><div class="list-item__left"><label class="checkbox checkbox--noborder"><input id="s'+i.toString()+'" data-name="'+(playerNames[i].Name)+'"data-tag="'+(playerNames[i].Tag)+'" type="checkbox" class="checkbox__input checkbox--noborder__input" value="false"><div class="checkbox__checkmark checkbox--noborder checkbox--noborder__checkmark"></div></label></div><label for="s'+i.toString()+'" class="list-item__center">'+playerNames[i].Name+'</label></li>');
+                }
+                $("#logRoundList input").on("click",function(){
+                    if($(this).val() == "true"){
+                        $(this).val(false);
+                    } else {
+                        $(this).val(true);
+                    }
+                });
+				$('#logRoundProgBar').hide();
+            }
+        });
+    }
+
+    function logRoundOrder(){
+        
+        var tagPool = [];
+        var playerList = $('#logRoundList input');
+        $("#logRoundList").empty();
+        for(var i=0;i<playerList.length;i++){
+            if(playerList[i].value == 'true'){
+                $("#logRoundList").append('<li class="list-item"><div class="list-item__left"><span class="roundOrderLI"></span></div><label class="list-item__center">'+playerList[i].getAttribute('data-name')+'</label></li>');
+                tagPool.push(playerList[i].getAttribute('data-tag'));
+            }
+        }
+        tagPool.sort(function(a, b){return b-a});
+
+        $("#logRoundList li").on("click",function(){
+            if($(this).find('span').text() == ""){
+                $(this).find('span').text(tagPool.pop());
+            } else {
+                tagPool.push($(this).find('span').text());
+                tagPool.sort(function(a, b){return b-a});
+                $(this).find('span').text("");
+            }
+			if(tagPool.length == 0){
+				$("#submitRoundBtn").removeAttr('disabled');
+			} else {
+				$("#submitRoundBtn").attr('disabled','disabled')
+			}
+        });
+
+    }
+	function updateUserTags(changeMap){
+        console.log(changeMap);
+		$('#logRoundProgBar').show();
+
+        var toJSON = {};
+        toJSON.datetime = null;
+        toJSON.dir = null;
+        $.ajax({
+            url : "getBagTags.php",
+            type: "POST",
+            data : {data:JSON.stringify(toJSON)},
+            cache: false,
+            success:function(data){
+                var bTags = $.parseJSON(data);
+                //store "present" state of tags at global level
+                currentBagTags = [];
+                for(var i=0;i<bTags.length;i++){
+                    var tag = {};
+                    tag.Name = bTags[i].Name;
+                    tag.Tag = bTags[i].Tag;
+                    currentBagTags.push(tag);
+                }
+                tagLookup = {};
+                $.each(currentBagTags,function(){
+                    tagLookup[this.Name] = this.Tag;
+                });
+
+                var toJSON = {};
+                var finalList = [];
+                for(var i=0;i<currentBagTags.length;i++){
+                    var tag = {};
+                    tag.Name = currentBagTags[i].Name;
+                    tag.Tag = currentBagTags[i].Tag;
+                    if(changeMap.hasOwnProperty(currentBagTags[i].Name)){
+                        tag.Tag = changeMap[tag.Name];
+                    }
+                    finalList.push(tag);
+                }
+                console.log(finalList);
+                toJSON.tagList = finalList;
+                $.ajax({
+                    url : "updateUserTags.php",
+                    type: "POST",
+                    data : {data:JSON.stringify(toJSON)},
+                    cache: false,
+                    success:function(data){
+                        currentBagTags = null;
+                        reBuildTags(null,null,true);
+                        var content = document.querySelector('ons-splitter-content');
+                        content.load('home.html');
+                        $('#logRoundProgBar').hide();
+                    }
+                }); 
+            }
+        });
+	}
+                
+    
+
+    //On Page Load code
+    document.addEventListener('init', function(event) {
+    if (event.target.matches('#home')) {
+        reBuildTags(null,null,true);
+        $("#leftBtn").on("click",function(){
+            $("#leftBtn").attr('disabled','disabled');
+            $("#rightBtn").attr('disabled','disabled');
+            reBuildTags($('#homeTags').attr('data-updateddate'),-1,false);
+            $('#homeTagsTitle').text('Past Standings');
+            $("#rightBtn").show();
+        });
+
+        $("#rightBtn").on("click",function(){
+            $("#leftBtn").attr('disabled','disabled');
+            $("#rightBtn").attr('disabled','disabled');
+            reBuildTags($('#homeTags').attr('data-updateddate'),1,false);
+        });
+
+        $("#updateBtn").on("click",function(){
+            reBuildTags(null,null,true);
+        });
+        
+    }
+    if (event.target.matches('#addplayer')) {
+        $("#addPlayerBtn").on("click",function(){
+            if($('#newPlayerInput').val() != ""){
+                insertNewUser($('#newPlayerInput').val());
+            } else {
+                alert('Name cannot be blank');
+            }
+        });
+    }
+    if (event.target.matches('#loground')) {
+        logRoundInit();
+        $("#logRoundBtn").on("click",function(){
+			if($("#logRoundList input[value='true'").size() > 0){
+				$("#logRoundBtn").hide();
+				$("#submitRoundBtn").show();
+				logRoundOrder();
+			} else {
+				alert('Must select at least one player in order to log a round');
+			}
+        });
+		$("#submitRoundBtn").on("click",function(){
+			var changeMap = {};
+            var finalStandingsList = $('#logRoundList li');
+			for(var i=0;i<finalStandingsList.length;i++){
+				changeMap[$(finalStandingsList[i]).find('label').text()] = $(finalStandingsList[i]).find('span').text();
+			}
+			updateUserTags(changeMap);
+        });
+    }
+    }, false);
+
+  </script>
+</head>
+<body>
+
+    <ons-splitter>
+    <ons-splitter-side id="menu" side="right" width="220px" collapse swipeable>
+        <ons-page>
+            <ons-list modifier="inset" id="splitterList">
+                <ons-list-header>Menu</ons-list-header>
+                <ons-list-item onclick="fn.load('home.html')" tappable>
+                Home
+                </ons-list-item>
+                <ons-list-item onclick="fn.load('loground.html')" tappable>
+                Log Round
+                </ons-list-item>
+                <ons-list-item onclick="fn.load('viewgraph.html')" tappable disabled style="color:#666666">
+                View Graph (WIP)
+                </ons-list-item>
+                <ons-list-item onclick="fn.load('addplayer.html')" tappable>
+                Add Player
+                </ons-list-item>
+            </ons-list>
+        </ons-page>
+    </ons-splitter-side>
+    <ons-splitter-content id="content" page="home.html"></ons-splitter-content>
+    </ons-splitter>
+
+    <template id="home.html">
+    <ons-page id="home">
+        <ons-toolbar>
+        <div class="right">
+            <ons-toolbar-button onclick="fn.open()">
+            <ons-icon icon="md-menu"></ons-icon>
+            </ons-toolbar-button>
+        </div>
+        <div class="center topTitle">
+            Morning Squad Bag Tags
+        </div>
+        </ons-toolbar>
+        <div style="height:2px">
+            <ons-progress-bar indeterminate id="homeProgBar"></ons-progress-bar>
+        </div>
+        <ons-bottom-toolbar>
+        <button id="leftBtn" class="button bottomButtons button--outline"><ons-icon icon="md-arrow-back"></ons-icon></button>
+        <button id="rightBtn" class="button bottomButtons button--outline"><ons-icon icon="md-arrow-forward"></ons-icon></button>
+        </ons-bottom-toolbar>
+
+        <div class="list-title" id="homeTagsTitle" style="float:left">Current Standings</div>
+        <div class="list-title" id="asOfDiv" style="float:right"><span id="asOfDatetime"></span></div>
+
+        <ul class="list" id="homeTags">
+        </ul>
+        <button id="updateBtn" class="button button--outline"><ons-icon icon="md-refresh"></ons-icon></button>
+    </ons-page>
+    </template>
+
+    <template id="loground.html">
+    <ons-page id="loground">
+        <ons-toolbar>
+        <div class="right">
+            <ons-toolbar-button onclick="fn.open()">
+            <ons-icon icon="md-menu"></ons-icon>
+            </ons-toolbar-button>
+        </div>
+        <div class="center topTitle">
+            Log Round
+        </div>
+        </ons-toolbar>
+        <div style="height:2px">
+            <ons-progress-bar indeterminate id="logRoundProgBar"></ons-progress-bar>
+        </div>
+        <ons-bottom-toolbar>
+            <button id="logRoundBtn" class="button--cta bottomRightBtn bottomButtons">Next</button>
+			<button id="submitRoundBtn" style="display:none" class="button--cta bottomRightBtn bottomButtons" disabled>Submit</button>
+        </ons-bottom-toolbar>
+
+        <div class="list-title" id="logRoundTitle">Select players:</div>
+        <ul class="list" id="logRoundList">
+        </ul>
+
+    </ons-page>
+    </template>
+
+    <template id="viewgraph.html">
+    <ons-page id="viewgraph">
+        <ons-toolbar>
+        <div class="right">
+            <ons-toolbar-button onclick="fn.open()">
+            <ons-icon icon="md-menu"></ons-icon>
+            </ons-toolbar-button>
+        </div>
+        <div class="center topTitle">
+            View Graph
+        </div>
+        </ons-toolbar>
+    </ons-page>
+    </template>
+
+    <template id="addplayer.html">
+    <ons-page id="addplayer">
+        <ons-toolbar>
+        <div class="right">
+            <ons-toolbar-button onclick="fn.open()">
+            <ons-icon icon="md-menu"></ons-icon>
+            </ons-toolbar-button>
+        </div>
+        <div class="center topTitle">
+            Add Player
+        </div>
+        </ons-toolbar>
+        <div style="height:2px">
+            <ons-progress-bar indeterminate id="addPlayerProgBar"></ons-progress-bar>
+        </div>
+        <div class="list-title" id="homeTagsTitle" style="float:left">Enter player's name:</div>
+        <div id="addPlayerContent">
+            <div><input id="newPlayerInput" class="text-input text-input--material" placeholder="Name" type="text" required></div>
+            <button id="addPlayerBtn" class="button--large--cta" style="width: 95%; margin: 0 auto;">Submit</button>
+        </div>
+        
+    </ons-page>
+    </template>
+</body>
+</html>

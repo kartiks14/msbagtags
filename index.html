@@ -112,7 +112,7 @@
           padding-right: 10px;
           text-align: center;
       }
-      .moveDown,.moveUp{
+      .moveDown,.moveUp,.moveNoChange{
           display:none;
           order: 2;
           margin-bottom: 6px;
@@ -132,6 +132,9 @@
       }
       .moveUp{
           color:rgb(43, 139, 43);
+      }
+      .moveNoChange{
+          color:rgb(143, 148, 229);
       }
       .moveDirClass{
           order:2;
@@ -209,7 +212,7 @@
 
 					for(var i=0;i<bagTags.length;i++){
                         thisTagMap[bagTags[i].Name] = bagTags[i].Tag;
-						$("#homeTags").append('<li data-id="'+(bagTags[i].Id)+'" data-tag="'+(bagTags[i].Tag)+'" data-name="'+(bagTags[i].Name)+'" class="list-item"><div class="list-item__center"><span class="tagNum">'+(bagTags[i].Tag)+'</span><span class="tagDivider">-</span><span class="tagName">'+bagTags[i].Name+'</span></div><div class="moveDirClass"><span class="moveUp">&#8593;</span><span class="moveDown">&#8595;</span><span class="moveNum"></span></div></li>');
+						$("#homeTags").append('<li data-id="'+(bagTags[i].Id)+'" data-tag="'+(bagTags[i].Tag)+'" data-name="'+(bagTags[i].Name)+'" class="list-item"><div class="list-item__center"><span class="tagNum">'+(bagTags[i].Tag)+'</span><span class="tagDivider">-</span><span class="tagName">'+bagTags[i].Name+'</span></div><div class="moveDirClass"><span class="moveUp">&#8593;</span><span class="moveDown">&#8595;</span><span class="moveNoChange">&#10231;</span><span class="moveNum"></span></div></li>');
 					}
 
 					//store "present" state of tags at global level
@@ -239,21 +242,40 @@
                         cache: false,
                         success:function(data){
                             prevBagTags = $.parseJSON(data);
-                            for(var i=0;i<prevBagTags.length;i++){
-                                if(parseInt(prevBagTags[i].Tag) > parseInt(thisTagMap[prevBagTags[i].Name])){
-                                    $("#homeTags li[data-name='"+prevBagTags[i].Name+"'] .moveUp").show();
-                                    $("#homeTags li[data-name='"+prevBagTags[i].Name+"'] .moveNum").text(parseInt(prevBagTags[i].Tag) - parseInt(thisTagMap[prevBagTags[i].Name]));
-                                    $("#homeTags li[data-name='"+prevBagTags[i].Name+"'] .moveNum").css('color','rgb(43, 139, 43)');
-                                } else if(parseInt(prevBagTags[i].Tag) < parseInt(thisTagMap[prevBagTags[i].Name])){
-                                    $("#homeTags li[data-name='"+prevBagTags[i].Name+"'] .moveDown").show();
-                                    $("#homeTags li[data-name='"+prevBagTags[i].Name+"'] .moveNum").text(parseInt(thisTagMap[prevBagTags[i].Name]) - parseInt(prevBagTags[i].Tag));
-                                    $("#homeTags li[data-name='"+prevBagTags[i].Name+"'] .moveNum").css('color','rgb(250, 55, 55)');
+                            
+                            //get players involved in last round
+                            var toJSON = {};
+                            toJSON.datetime = bagTags[0].UpdatedDate;
+                            $.ajax({
+                                url : "getLastRoundPlayers.php",
+                                type: "POST",
+                                data : {data:JSON.stringify(toJSON)},
+                                cache: false,
+                                success:function(data){
+                                    lastRoundPlayers = $.parseJSON(data);
+                                    lastRoundPlayerNames = [];
+                                    for(var i=0;i<lastRoundPlayers.length;i++){
+                                        lastRoundPlayerNames.push(lastRoundPlayers[i].Name);
+                                    }
+                                    for(var i=0;i<prevBagTags.length;i++){
+                                        if(parseInt(prevBagTags[i].Tag) > parseInt(thisTagMap[prevBagTags[i].Name])){
+                                            $("#homeTags li[data-name='"+prevBagTags[i].Name+"'] .moveUp").show();
+                                            $("#homeTags li[data-name='"+prevBagTags[i].Name+"'] .moveNum").text(parseInt(prevBagTags[i].Tag) - parseInt(thisTagMap[prevBagTags[i].Name]));
+                                            $("#homeTags li[data-name='"+prevBagTags[i].Name+"'] .moveNum").css('color','rgb(43, 139, 43)');
+                                        } else if(parseInt(prevBagTags[i].Tag) < parseInt(thisTagMap[prevBagTags[i].Name])){
+                                            $("#homeTags li[data-name='"+prevBagTags[i].Name+"'] .moveDown").show();
+                                            $("#homeTags li[data-name='"+prevBagTags[i].Name+"'] .moveNum").text(parseInt(thisTagMap[prevBagTags[i].Name]) - parseInt(prevBagTags[i].Tag));
+                                            $("#homeTags li[data-name='"+prevBagTags[i].Name+"'] .moveNum").css('color','rgb(250, 55, 55)');
+                                        } else if (lastRoundPlayerNames.indexOf(prevBagTags[i].Name) > -1){
+                                            $("#homeTags li[data-name='"+prevBagTags[i].Name+"'] .moveNoChange").show();
+                                        }
+                                    }
+                                    $('#homeTags').trigger('touchstart');
+                                    $("#leftBtn").removeAttr('disabled');
+                                    $("#rightBtn").removeAttr('disabled');
+                                    $('#homeProgBar').hide();         
                                 }
-                            }
-                            $('#homeTags').trigger('touchstart');
-                            $("#leftBtn").removeAttr('disabled');
-                            $("#rightBtn").removeAttr('disabled');
-                            $('#homeProgBar').hide();         
+                            });
                         }
                     });
 				} else {
@@ -379,17 +401,19 @@
 
                 var toJSON = {};
                 var finalList = [];
+                var justRoundList = [];
                 for(var i=0;i<currentBagTags.length;i++){
                     var tag = {};
                     tag.Name = currentBagTags[i].Name;
                     tag.Tag = currentBagTags[i].Tag;
                     if(changeMap.hasOwnProperty(currentBagTags[i].Name)){
                         tag.Tag = changeMap[tag.Name];
+                        justRoundList.push(tag);
                     }
                     finalList.push(tag);
                 }
-                console.log(finalList);
                 toJSON.tagList = finalList;
+                toJSON.roundTagList = justRoundList;
                 $.ajax({
                     url : "updateUserTags.php",
                     type: "POST",

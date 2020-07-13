@@ -15,8 +15,15 @@
 
     $sql= "INSERT INTO  `dbcjp34z5c9yg6`.`MorningSquad` (`Name`, `Tag`, `UpdatedDate`) VALUES ";
 	
-	
 	foreach ($object['tagList'] as $i){
+		$sql.= "('".$i['Name']."','".$i['Tag']."','".$currentDateTime."'),";
+	}
+	$sql = rtrim($sql,",");
+	$result = mysqli_query($connection, $sql) or die("Error in Selecting " . mysqli_error($connection));
+
+    $sql= "INSERT INTO  `dbcjp34z5c9yg6`.`MorningSquad_Rounds` (`Name`, `Tag`, `UpdatedDate`) VALUES ";
+	
+	foreach ($object['roundTagList'] as $i){
 		$sql.= "('".$i['Name']."','".$i['Tag']."','".$currentDateTime."'),";
 	}
 	$sql = rtrim($sql,",");

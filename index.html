@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" manifest="manifest.appcache.php">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="css/dark-onsen-css-components.min.css">
   <link rel="stylesheet" href="css/onsenui-fonts.css">
   <link rel="stylesheet" href="css/ionicons/css/ionicons.min.css">
+  <link rel="shortcut icon" href="icons/favicon.ico">
   <style>
       .topTitle{
         font: inherit;
@@ -70,7 +71,8 @@
           margin-right:20px;
       }
       .bottomButtons{
-          height: 36px;
+          height: 35px;
+          width: 35px;
           margin-top: 4px;
           margin-right:5px;
           margin-left:5px;
@@ -124,6 +126,7 @@
           margin-bottom: 0px;
           font-size: 13px;
           width: 15px;
+          vertical-align:2px;
           //text-align: center;
           //display: inline-block;
       }
@@ -134,7 +137,10 @@
           color:rgb(43, 139, 43);
       }
       .moveNoChange{
-          color:rgb(143, 148, 229);
+          //color:rgb(143, 148, 229);
+          color:#8e8e8e;
+          font-weight:bolder;
+          vertical-align:5px;
       }
       .moveDirClass{
           order:2;
@@ -148,8 +154,50 @@
         display: block;
         right: 5px;
         top: 50px;
-        height: 40px;
+        height: 35px;
+        width: 35px;
       }
+      #roundImg{
+        position: absolute;
+        top: 200px;
+        width: 100%;
+        left: 0px;
+        display:none;
+      }
+      #showRoundImgBtn,#hideRoundImgBtn {
+        position: absolute;
+        display: block;
+        right: 5px;
+        top: 100px;
+        height: 35px;
+        width: 35px;
+      }
+      #showRoundImgBtn,#hideRoundImgBtn{
+        display:none;
+      }
+      ons-icon{
+        vertical-align: 2px;
+      }
+      #fileToUpload{
+          display:none;
+          margin-top:25px;
+      }
+	  .imgButtons{
+          height: 35px;
+          width: 35px;
+		  display:none;
+      }
+	  #imgLeftBtn{
+		  position: absolute;
+	      top: 160px;
+		  left: 20px;
+	  }
+	  #imgRightBtn{
+		  position: absolute;
+	      top: 160px;
+		  right: 20px;
+	  }
+
   </style>
   <script src="js/onsenui.min.js"></script>
   <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
@@ -161,6 +209,8 @@
     //global vars
     var currentBagTags = null;
     var tagLookup;
+	var roundImgArray;
+	var roundImgPointer;
 
     window.fn = {};
 
@@ -193,6 +243,20 @@
 					$("#homeTags").empty();
 					$("#leftBtn").show();
 					$("#homeTags").attr('data-updateddate',bagTags[0].UpdatedDate);
+          
+					//update scorecard image(s)
+					roundImgArray = [];
+					roundImgPointer = 0;
+					roundImgArray = bagTags[0].imgName.split(';');
+					console.log(bagTags[0].imgName);
+					console.log(roundImgArray);
+					if(roundImgArray[0] == ''){
+						$('#showRoundImgBtn').hide();
+					} else {			
+						$('#roundImg').attr('src','uploads/'+roundImgArray[0]);
+						$('#showRoundImgBtn').show();
+					}
+
 					var asOfLabel = '';
 					
 					if(newUpdate){
@@ -354,6 +418,8 @@
                 tagPool.push(playerList[i].getAttribute('data-tag'));
             }
         }
+        $('#fileToUpload').show();
+
         tagPool.sort(function(a, b){return b-a});
 
         $("#logRoundList li").on("click",function(){
@@ -373,7 +439,6 @@
 
     }
 	function updateUserTags(changeMap){
-        console.log(changeMap);
 		$('#logRoundProgBar').show();
 
         var toJSON = {};
@@ -414,22 +479,52 @@
                 }
                 toJSON.tagList = finalList;
                 toJSON.roundTagList = justRoundList;
+                toJSON.fileExtensions = [];
+                for(var i=0;i<$("#fileToUpload").prop("files").length;i++){
+                    toJSON.fileExtensions.push($("#fileToUpload").prop("files")[i].name.split('.').pop());
+                }
                 $.ajax({
                     url : "updateUserTags.php",
                     type: "POST",
                     data : {data:JSON.stringify(toJSON)},
                     cache: false,
-                    success:function(data){
-                        currentBagTags = null;
-                        reBuildTags(null,null,true);
-                        var content = document.querySelector('ons-splitter-content');
-                        content.load('home.html');
-                        $('#logRoundProgBar').hide();
+                    success:function(dateTime){
+						//upload round image
+						if($("#fileToUpload").prop("files").length >= 1){
+							var form_data = new FormData();
+                            for(var i=0;i<$("#fileToUpload").prop("files").length;i++){
+                                var file_data = $("#fileToUpload").prop("files")[i];
+                                form_data.append("fileToUpload[]", file_data);
+                            }
+							
+							form_data.append("dateTime", dateTime);
+							$.ajax({
+                                url: "upload.php",
+                                cache: false,
+                                contentType: false,
+                                processData: false,
+                                data: form_data,
+                                type: 'post',
+								success: function(data){
+									postUserTagsUpdate();
+								}
+							});
+						} else {
+							postUserTagsUpdate();
+						}
                     }
                 }); 
             }
         });
 	}
+
+  function postUserTagsUpdate(){
+      currentBagTags = null;
+      reBuildTags(null,null,true);
+      var content = document.querySelector('ons-splitter-content');
+      content.load('home.html');
+      $('#logRoundProgBar').hide();
+  }
                 
     
 
@@ -453,6 +548,49 @@
 
         $("#updateBtn").on("click",function(){
             reBuildTags(null,null,true);
+        });
+
+        $("#showRoundImgBtn").on("click",function(){
+			roundImgPointer = 0;
+			$('#roundImg').attr('src','uploads/'+roundImgArray[roundImgPointer]);
+            $("#roundImg").show();
+            $('#showRoundImgBtn').hide();
+            $('#hideRoundImgBtn').show();
+			if(roundImgArray.length > 1){
+				$('#imgRightBtn').show();
+			}
+        });
+
+        $("#hideRoundImgBtn").on("click",function(){
+            $("#roundImg").hide();
+            $('#showRoundImgBtn').show();
+            $('#hideRoundImgBtn').hide();
+			$('.imgButtons').hide();
+        });
+		$("#imgRightBtn").on("click",function(){
+			if(roundImgPointer < (roundImgArray.length - 1)){
+				roundImgPointer++;
+				$('#roundImg').attr('src','uploads/'+roundImgArray[roundImgPointer]);
+				$('#imgLeftBtn').show();
+				if(roundImgPointer + 1 < roundImgArray.length){
+					$('#imgRightBtn').show();
+				} else {
+					$('#imgRightBtn').hide();
+				}
+			}
+			
+        });
+		$("#imgLeftBtn").on("click",function(){
+			if(roundImgPointer > 0){
+				roundImgPointer--;
+				$('#roundImg').attr('src','uploads/'+roundImgArray[roundImgPointer]);
+				$('#imgRightBtn').show();
+				if(roundImgPointer >= 1){
+					$('#imgLeftBtn').show();
+				} else {
+					$('#imgLeftBtn').hide();
+				}
+			}
         });
         
     }
@@ -540,6 +678,11 @@
         <ul class="list" id="homeTags">
         </ul>
         <button id="updateBtn" class="button button--outline"><ons-icon icon="md-refresh"></ons-icon></button>
+        <button id="showRoundImgBtn" class="button button--outline"><ons-icon icon="md-receipt"></ons-icon></button>
+        <button id="hideRoundImgBtn" class="button button--outline"><ons-icon icon="md-close"></ons-icon></button>
+		<button id="imgLeftBtn" class="button imgButtons button--outline"><ons-icon icon="md-arrow-back"></ons-icon></button>
+        <button id="imgRightBtn" class="button imgButtons button--outline"><ons-icon icon="md-arrow-forward"></ons-icon></button>
+        <img id="roundImg" src=""> </img>
     </ons-page>
     </template>
 
@@ -566,6 +709,7 @@
         <div class="list-title" id="logRoundTitle">Select players:</div>
         <ul class="list" id="logRoundList">
         </ul>
+        <input type="file" name="fileToUpload[]" id="fileToUpload" multiple>
 
     </ons-page>
     </template>

@@ -1,5 +1,7 @@
 CACHE MANIFEST
 
+# Version 1.17
+
 CACHE:
 # Don't cache anything
 FALLBACK:

@@ -163,6 +163,7 @@
         width: 100%;
         left: 0px;
         display:none;
+		z-index:2;
       }
       #showRoundImgBtn,#hideRoundImgBtn {
         position: absolute;
@@ -171,6 +172,7 @@
         top: 100px;
         height: 35px;
         width: 35px;
+		z-index:2;
       }
       #showRoundImgBtn,#hideRoundImgBtn{
         display:none;
@@ -186,6 +188,7 @@
           height: 35px;
           width: 35px;
 		  display:none;
+		  z-index:2;
       }
 	  #imgLeftBtn{
 		  position: absolute;
@@ -196,6 +199,16 @@
 		  position: absolute;
 	      top: 160px;
 		  right: 20px;
+	  }
+	  #opaqueLayer{
+		  background-color: #0d0d0d;
+		  z-index: 1;
+		  height: 0px;
+		  width: 100%;
+		  position: absolute;
+		  top: 0px;
+		  opacity: .8;
+		  background-repeat: repeat-y;
 	  }
 
   </style>
@@ -248,8 +261,7 @@
 					roundImgArray = [];
 					roundImgPointer = 0;
 					roundImgArray = bagTags[0].imgName.split(';');
-					console.log(bagTags[0].imgName);
-					console.log(roundImgArray);
+
 					if(roundImgArray[0] == ''){
 						$('#showRoundImgBtn').hide();
 					} else {			
@@ -359,8 +371,7 @@
             cache: false,
             success:function(data){
                 result = $.parseJSON(data);
-                console.log(result[0].Tag);
-                console.log(result[0].UpdatedDate);
+
                 toJSON.newName = name;
                 toJSON.newTag = result[0].Tag;
                 toJSON.lastDateTime = result[0].UpdatedDate;
@@ -556,6 +567,7 @@
             $("#roundImg").show();
             $('#showRoundImgBtn').hide();
             $('#hideRoundImgBtn').show();
+			$('#opaqueLayer').css('height',parseInt($('#homeTags').css('height').replace('px',''))+46+'px');
 			if(roundImgArray.length > 1){
 				$('#imgRightBtn').show();
 			}
@@ -566,6 +578,7 @@
             $('#showRoundImgBtn').show();
             $('#hideRoundImgBtn').hide();
 			$('.imgButtons').hide();
+			$('#opaqueLayer').css('height',0);
         });
 		$("#imgRightBtn").on("click",function(){
 			if(roundImgPointer < (roundImgArray.length - 1)){
@@ -672,6 +685,7 @@
         <button id="rightBtn" class="button bottomButtons button--outline"><ons-icon icon="md-arrow-forward"></ons-icon></button>
         </ons-bottom-toolbar>
 
+		<div id="opaqueLayer"></div>
         <div class="list-title" id="homeTagsTitle" style="float:left">Current Standings</div>
         <div class="list-title" id="asOfDiv" style="float:right"><span id="asOfDatetime"></span></div>
 

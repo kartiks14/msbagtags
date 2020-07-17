@@ -165,7 +165,7 @@
         display:none;
 		z-index:2;
       }
-      #showRoundImgBtn,#hideRoundImgBtn {
+      #showRoundImgBtn,#hideRoundImgBtn,#uploadRoundImgBtn {
         position: absolute;
         display: block;
         right: 5px;
@@ -174,16 +174,57 @@
         width: 35px;
 		z-index:2;
       }
-      #showRoundImgBtn,#hideRoundImgBtn{
+      #showRoundImgBtn,#hideRoundImgBtn,#uploadRoundImgBtn{
         display:none;
       }
       ons-icon{
         vertical-align: 2px;
       }
-      #fileToUpload{
+      #fileToUpload,#homeFileUpload{
           display:none;
-          margin-top:25px;
+          //
       }
+      #fileToUploadLabel,#fileToUploadHomeLabel{
+        margin-top: 25px;
+        margin-left: 10%;
+        font-size: 13px;
+        width: 80%;
+        text-align: center;
+        font-weight:bold;
+        touch-action:manipulation;
+        transition: none;
+        position: relative;
+        box-sizing: border-box;
+        margin-right: 0px;
+        margin-bottom: 0px;
+        font: inherit;
+        -moz-osx-font-smoothing: grayscale;
+        cursor: default;
+        -moz-user-select: none;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        overflow: hidden;
+        height: auto;
+        text-decoration: none;
+        display: none;
+        -webkit-user-select: none;
+        padding: 4px 10px;
+        border: 0 solid currentColor;
+        background: #ffa101;
+        font-family: -apple-system,'Helvetica Neue',Helvetica,Arial,'Lucida Grande',sans-serif;
+        -webkit-font-smoothing: antialiased;
+        user-select: none;
+        line-height: 32px;
+        letter-spacing: 0;
+        color: #fff;
+        vertical-align: middle;
+        border-radius: 3px;
+      }
+	  #fileToUploadHomeLabel{
+		  z-index:2;
+		  top:175px;
+		  position:absolute;
+	  }
 	  .imgButtons{
           height: 35px;
           width: 35px;
@@ -210,7 +251,34 @@
 		  opacity: .8;
 		  background-repeat: repeat-y;
 	  }
-
+      #fileToUploadLabel > ons-icon, #fileToUploadHomeLabel > ons-icon{
+          font-size: 23px;
+          vertical-align: -3px;
+          margin-right: 10px;
+      }
+      #numFilesUploaded{
+          display:none;
+          text-align: center;
+          margin-top: 10px;
+      }
+	  #numFilesUploadedHome{
+		text-align: center;
+		position: absolute;
+		top: 260px;
+		width: 60%;
+		margin-left: 20%;
+		background-color: #181818;
+		z-index: 2;
+		border-radius: 10px;
+		font-size: 12px;
+		display:none;
+	  }
+      #submitHomeFileUploadBtn{
+          z-index:2;
+		  top:290px;
+		  position:absolute;
+          right:10%;
+      }
   </style>
   <script src="js/onsenui.min.js"></script>
   <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
@@ -264,9 +332,11 @@
 
 					if(roundImgArray[0] == ''){
 						$('#showRoundImgBtn').hide();
+						$('#uploadRoundImgBtn').show();
 					} else {			
 						$('#roundImg').attr('src','uploads/'+roundImgArray[0]);
 						$('#showRoundImgBtn').show();
+                        $('#uploadRoundImgBtn').hide();
 					}
 
 					var asOfLabel = '';
@@ -429,7 +499,7 @@
                 tagPool.push(playerList[i].getAttribute('data-tag'));
             }
         }
-        $('#fileToUpload').show();
+        $('#fileToUploadLabel').css('display','inline-block');
 
         tagPool.sort(function(a, b){return b-a});
 
@@ -536,6 +606,28 @@
       content.load('home.html');
       $('#logRoundProgBar').hide();
   }
+
+  function onFileUploadChange(){
+      if($("#fileToUpload").prop("files").length > 0){
+        $("#numFilesUploaded").text($("#fileToUpload").prop("files").length+' file(s) selected.');
+        $("#numFilesUploaded").show();
+      } else {
+        $("#numFilesUploaded").text('');
+        $("#numFilesUploaded").hide();
+      }
+  }
+
+  function onFileUploadChangeHome(){
+      if($("#homeFileUpload").prop("files").length > 0){
+        $("#numFilesUploadedHome").text($("#homeFileUpload").prop("files").length+' file(s) selected.');
+        $("#numFilesUploadedHome").show();
+        $('#submitHomeFileUploadBtn').show();
+      } else {
+        $("#numFilesUploadedHome").text('');
+        $("#numFilesUploadedHome").hide();
+        $('#submitHomeFileUploadBtn').hide();
+      }
+  }
                 
     
 
@@ -562,6 +654,8 @@
         });
 
         $("#showRoundImgBtn").on("click",function(){
+            $("#leftBtn").attr('disabled','disabled');
+            $("#rightBtn").attr('disabled','disabled');
 			roundImgPointer = 0;
 			$('#roundImg').attr('src','uploads/'+roundImgArray[roundImgPointer]);
             $("#roundImg").show();
@@ -572,13 +666,31 @@
 				$('#imgRightBtn').show();
 			}
         });
-
         $("#hideRoundImgBtn").on("click",function(){
+            $("#leftBtn").removeAttr('disabled');
+            $("#rightBtn").removeAttr('disabled');
             $("#roundImg").hide();
-            $('#showRoundImgBtn').show();
+			if(roundImgArray[0] == ''){
+				$('#uploadRoundImgBtn').show();
+			} else {			
+				$('#showRoundImgBtn').show();
+			}
             $('#hideRoundImgBtn').hide();
+            $('#numFilesUploadedHome').hide();
+            $('#fileToUploadHomeLabel').hide();
 			$('.imgButtons').hide();
 			$('#opaqueLayer').css('height',0);
+            $('#submitHomeFileUploadBtn').attr('disabled','disabled');
+            $('#submitHomeFileUploadBtn').hide();
+        });
+		$("#uploadRoundImgBtn").on("click",function(){
+            $("#leftBtn").attr('disabled','disabled');
+            $("#rightBtn").attr('disabled','disabled');
+            $('#uploadRoundImgBtn').hide();
+            $('#hideRoundImgBtn').show();
+			$('#opaqueLayer').css('height',parseInt($('#homeTags').css('height').replace('px',''))+46+'px');
+			$('#fileToUploadHomeLabel').css('display','block');
+            $('#submitHomeFileUploadBtn').removeAttr('disabled');
         });
 		$("#imgRightBtn").on("click",function(){
 			if(roundImgPointer < (roundImgArray.length - 1)){
@@ -604,6 +716,44 @@
 					$('#imgLeftBtn').hide();
 				}
 			}
+        });
+        $("#submitHomeFileUploadBtn").on("click",function(){
+			if($("#homeFileUpload").prop("files").length >= 1){
+                $('#submitHomeFileUploadBtn').attr('disabled','disabled');
+				$('#homeProgBar').show();
+                var form_data = new FormData();
+                for(var i=0;i<$("#homeFileUpload").prop("files").length;i++){
+                    var file_data = $("#homeFileUpload").prop("files")[i];
+                    form_data.append("fileToUpload[]", file_data);
+                }
+                
+                form_data.append("dateTime", $('#homeTags').attr('data-updateddate'));
+                $.ajax({
+                    url: "upload.php",
+                    cache: false,
+                    contentType: false,
+                    processData: false,
+                    data: form_data,
+                    type: 'post',
+                    success: function(data){
+						var toJSON = {};
+						toJSON.fileExtensions = [];
+        				toJSON.datetime = $('#homeTags').attr('data-updateddate');
+                        for(var i=0;i<$("#homeFileUpload").prop("files").length;i++){
+                    		toJSON.fileExtensions.push($("#homeFileUpload").prop("files")[i].name.split('.').pop());
+						}
+						$.ajax({
+							url : "updateRecordsWithImgNames.php",
+							type: "POST",
+							data : {data:JSON.stringify(toJSON)},
+							cache: false,
+							success:function(data){
+								postUserTagsUpdate();
+							}
+						});
+					}
+                });
+            }
         });
         
     }
@@ -694,9 +844,15 @@
         <button id="updateBtn" class="button button--outline"><ons-icon icon="md-refresh"></ons-icon></button>
         <button id="showRoundImgBtn" class="button button--outline"><ons-icon icon="md-receipt"></ons-icon></button>
         <button id="hideRoundImgBtn" class="button button--outline"><ons-icon icon="md-close"></ons-icon></button>
+		<button id="uploadRoundImgBtn" class="button button--outline"><ons-icon icon="md-upload"></ons-icon></button>
 		<button id="imgLeftBtn" class="button imgButtons button--outline"><ons-icon icon="md-arrow-back"></ons-icon></button>
         <button id="imgRightBtn" class="button imgButtons button--outline"><ons-icon icon="md-arrow-forward"></ons-icon></button>
         <img id="roundImg" src=""> </img>
+
+		<label id="fileToUploadHomeLabel" for="homeFileUpload"><ons-icon icon="md-upload"></ons-icon>Upload UDisc Scorecard Photo(s)</label> 
+        <input type="file" name="homeFileUpload[]" id="homeFileUpload" multiple onChange="onFileUploadChangeHome()" accept="*">
+        <div id="numFilesUploadedHome" class="card__content card--material__content"></div>
+        <button id="submitHomeFileUploadBtn" style="display:none" class="button--cta bottomRightBtn bottomButtons">Submit</button>
     </ons-page>
     </template>
 
@@ -723,7 +879,11 @@
         <div class="list-title" id="logRoundTitle">Select players:</div>
         <ul class="list" id="logRoundList">
         </ul>
-        <input type="file" name="fileToUpload[]" id="fileToUpload" multiple>
+        
+        <label id="fileToUploadLabel" for="fileToUpload"><ons-icon icon="md-upload"></ons-icon>Upload UDisc Scorecard Photo(s)</label> 
+        <input type="file" name="fileToUpload[]" id="fileToUpload" multiple onChange="onFileUploadChange()" accept="*">
+        <div id="numFilesUploaded" class="card__content card--material__content"></div>
+        
 
     </ons-page>
     </template>
